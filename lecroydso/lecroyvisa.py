@@ -25,7 +25,8 @@ class LeCroyVISA(DSOConnection):
             connection_string (str): string in a specified format
             query_response_max_length (integer, optional): description. Defaults to maxLen.
         """
-        self.connection_string = None
+        self.connection_string = connection_string
+        self._rm = None
         self._visa = None
         self.connected = False
 
@@ -57,14 +58,16 @@ class LeCroyVISA(DSOConnection):
                 scope.close()
                 return
 
+            self._rm = rm
             self._visa = scope
-            self.connection_string = connection_string
+            # self.connection_string = connection_string
             self.connected = True
             self._query_response_max_length = query_response_max_length
             self._error_string = ''
             self._error_flag = ''
             self._insert_wait_opc = False
         except:     # noqa
+            rm.close()
             raise DSOConnectionError("Unable to make a LeCroyVISA connection")
 
     def __del__(self):
@@ -114,6 +117,7 @@ class LeCroyVISA(DSOConnection):
         """
         if self.connected:
             self._visa.close()
+            self._rm.close()
         self.__init__(self.connection_string)
 
     def write(self, message: str):
@@ -188,6 +192,8 @@ class LeCroyVISA(DSOConnection):
         """
         if self._visa is not None:
             self._visa.close()
+        if self._rm is not None:
+            self._rm.close()
         self.connected = False
 
     def write_raw(self, message: bytes, terminator: bool = True) -> bool:
